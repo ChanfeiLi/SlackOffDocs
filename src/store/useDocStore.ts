@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { writeSource } from '../lib/sourceStore'
 
 type Rate = { charsPerKeystroke: number }
 
@@ -14,6 +15,7 @@ type Store = {
   reveal: (n: number) => void
   setRate: (r: Partial<Rate>) => void
   setTitle: (title: string) => void
+  deleteSnippet: (currentText: string, startIndex: number, length: number) => Promise<string>
   setFileName: (name: string) => void
   clearCurrent: () => void
 }
@@ -41,6 +43,23 @@ export const useDocStore = create<Store>()(
         if (!id) return {}
         return { titleByDoc: { ...s.titleByDoc, [id]: title } }
       }),
+      deleteSnippet: async (currentText, startIndex, length) => {
+        const id = get().docId
+        if (!id) return currentText
+
+        const before = currentText.slice(0, startIndex)
+        const after = currentText.slice(startIndex + length)
+        const newText = before + after
+
+        await writeSource(id, newText)
+
+        set((s) => {
+          const prev = s.progressByDoc[id] ?? 0
+          const next = Math.max(0, prev - length)
+          return { progressByDoc: { ...s.progressByDoc, [id]: next } }
+        })
+        return newText
+      },
       setFileName: (name) => set((s) => {
         const id = s.docId
         if (!id) return {}

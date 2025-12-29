@@ -1,8 +1,8 @@
 import * as React from 'react'
-import Toolbar from './components/Toolbar'
 import Editor from './components/Editor'
-import { useDocStore } from './store/useDocStore'
+import Toolbar from './components/Toolbar'
 import { hashText, writeSource } from './lib/sourceStore'
+import { useDocStore } from './store/useDocStore'
 
 export default function App() {
   const docId = useDocStore((s) => s.docId)
@@ -41,6 +41,3 @@ export default function App() {
     </div>
   )
 }
-
-
-

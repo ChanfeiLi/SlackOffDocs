@@ -1,13 +1,15 @@
 import * as React from 'react'
-import { useDocStore } from '../store/useDocStore'
 import { readSource } from '../lib/sourceStore'
+import { useDocStore } from '../store/useDocStore'
 
 type Props = { docId?: string }
 
 export default function Editor({ docId }: Props) {
   const progressByDoc = useDocStore((s) => s.progressByDoc)
   const rate = useDocStore((s) => s.rate)
+
   const reveal = useDocStore((s) => s.reveal)
+  const deleteSnippet = useDocStore((s) => s.deleteSnippet)
 
   const [text, setText] = React.useState<string>('')
   const composingRef = React.useRef(false)
@@ -15,23 +17,39 @@ export default function Editor({ docId }: Props) {
 
   React.useEffect(() => {
     let ignore = false
-    ;(async () => {
-      if (!docId) { setText(''); return }
-      const src = (await readSource(docId)) ?? ''
-      if (!ignore) setText(src)
-    })()
+      ; (async () => {
+        if (!docId) { setText(''); return }
+        const src = (await readSource(docId)) ?? ''
+        if (!ignore) setText(src)
+      })()
     return () => { ignore = true }
   }, [docId])
 
   const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     // allow system/navigation keys
     if (e.metaKey || e.ctrlKey) return;
-    const nav = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'];
+    const nav = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'];
     // ignore IME composing stage
     // @ts-ignore
     if (e.isComposing || e.nativeEvent.isComposing || e.key === 'Process' || composingRef.current) return;
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+        if (editorRef.current && editorRef.current.contains(selection.anchorNode)) {
+          e.preventDefault();
+          const range = selection.getRangeAt(0);
+          const start = range.startOffset;
+          const length = range.toString().length;
+
+          deleteSnippet(text, start, length).then((newText) => {
+            setText(newText);
+            selection.removeAllRanges();
+          });
+          return;
+        }
+      }
+
       e.preventDefault();
       reveal(-rate.charsPerKeystroke); // back up same step
       return;
@@ -40,7 +58,7 @@ export default function Editor({ docId }: Props) {
 
     e.preventDefault();
     reveal(rate.charsPerKeystroke);
-  }, [rate.charsPerKeystroke, reveal]);
+  }, [rate.charsPerKeystroke, reveal, text, deleteSnippet]);
 
   const onCompositionStart = () => {
     composingRef.current = true

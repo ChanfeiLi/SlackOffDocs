@@ -1,7 +1,7 @@
+import { AlignLeft, ChevronDown, CloudDrizzle, Folder, Highlighter, Image as ImageIcon, Indent, LineChart, Link as LinkIcon, List, Minus, MoreHorizontal, Outdent, Plus, Printer, Redo, Search, Share, Star, Table, Type, Undo } from 'lucide-react'
 import * as React from 'react'
-import { Star, Folder, CloudDrizzle, Share, ChevronDown, MoreVertical, Search, Undo, Redo, Printer, Minus, Plus, Type, Highlighter, Link as LinkIcon, Image as ImageIcon, Table, AlignLeft, AlignCenter, AlignRight, AlignJustify, LineChart, List, ListOrdered, Outdent, Indent, MoreHorizontal } from 'lucide-react'
+import { hashText, readSource, writeSource } from '../lib/sourceStore'
 import { useDocStore } from '../store/useDocStore'
-import { hashText, writeSource, readSource } from '../lib/sourceStore'
 import Ruler from './Ruler'
 
 export default function Toolbar() {
@@ -13,7 +13,14 @@ export default function Toolbar() {
   const progressByDoc = useDocStore((s) => s.progressByDoc)
   const fileNameByDoc = useDocStore((s) => s.fileNameByDoc)
   const setFileName = useDocStore((s) => s.setFileName)
+
   const clearCurrent = useDocStore((s) => s.clearCurrent)
+  const setTitle = useDocStore((s) => s.setTitle)
+  const titleByDoc = useDocStore((s) => s.titleByDoc)
+
+  const currentTitle = docId ? (titleByDoc[docId] || 'Untitled document') : 'Untitled document'
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false)
+  const [tempTitle, setTempTitle] = React.useState('')
   const revealIndex = docId ? (progressByDoc[docId] ?? 0) : 0
   const [docLength, setDocLength] = React.useState<number>(0)
   const [showFileMenu, setShowFileMenu] = React.useState(false)
@@ -33,11 +40,11 @@ export default function Toolbar() {
 
   React.useEffect(() => {
     let ignore = false
-    ;(async () => {
-      if (!docId) { if (!ignore) setDocLength(0); return }
-      const txt = (await readSource(docId)) ?? ''
-      if (!ignore) setDocLength(txt.length)
-    })()
+      ; (async () => {
+        if (!docId) { if (!ignore) setDocLength(0); return }
+        const txt = (await readSource(docId)) ?? ''
+        if (!ignore) setDocLength(txt.length)
+      })()
     return () => { ignore = true }
   }, [docId])
 
@@ -62,25 +69,54 @@ export default function Toolbar() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center'}}>
-            <img src="/logo.png" alt="logo" style={{ height: 40, width: 'auto'}} />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="logo" style={{ height: 40, width: 'auto' }} />
           </div>
 
           {/* Two-row layout for document info and menu */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {/* Top row: Document Title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18, color: '#444746', fontWeight: 500 }}>Untitled document</span>
+              {isEditingTitle ? (
+                <input
+                  autoFocus
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onBlur={() => {
+                    setTitle(tempTitle || 'Untitled document')
+                    setIsEditingTitle(false)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setTitle(tempTitle || 'Untitled document')
+                      setIsEditingTitle(false)
+                    }
+                  }}
+                  style={{ fontSize: 18, color: '#444746', fontWeight: 500, border: '1px solid #1a73e8', borderRadius: 4, padding: '0 4px', outline: 'none' }}
+                />
+              ) : (
+                <span
+                  onDoubleClick={() => {
+                    if (docId) {
+                      setTempTitle(currentTitle)
+                      setIsEditingTitle(true)
+                    }
+                  }}
+                  style={{ fontSize: 18, color: '#444746', fontWeight: 500, cursor: docId ? 'text' : 'default' }}
+                >
+                  {currentTitle}
+                </span>
+              )}
               <Star size={20} color="#9ca3af" />
               <Folder size={20} color="#9ca3af" />
               <CloudDrizzle size={20} color="#9ca3af" />
-              
+
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12, color: '#202124', marginLeft: 8 }}>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e5e7eb', padding: '4px 8px', borderRadius: 8, cursor: 'pointer' }}>
                   Import txt
                   <input type="file" accept=".txt,text/plain" onChange={onPick} style={{ display: 'none' }} />
                 </label>
-                <div style={{ color: '#6b7280' }}>{docId ? `Doc: ${fileNameByDoc[docId] || docId.slice(0,8)+'…'}` : 'No document loaded'}</div>
+                <div style={{ color: '#6b7280' }}>{docId ? `Doc: ${fileNameByDoc[docId] || docId.slice(0, 8) + '…'}` : 'No document loaded'}</div>
                 <div style={{ width: 1, height: 14, background: '#e5e7eb' }} />
                 <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                   Chars per keystroke
@@ -89,7 +125,7 @@ export default function Toolbar() {
                     min={1}
                     max={1000}
                     value={rate.charsPerKeystroke}
-                    onChange={(e) => setRate({ charsPerKeystroke: Math.max(1, Number(e.target.value||1)) })}
+                    onChange={(e) => setRate({ charsPerKeystroke: Math.max(1, Number(e.target.value || 1)) })}
                     style={{ width: 48, height: 22, fontSize: 12, padding: '0 6px', border: '1px solid #e5e7eb', borderRadius: 4 }}
                   />
                   chars
@@ -100,7 +136,7 @@ export default function Toolbar() {
 
             {/* Bottom row: Menu Items */}
             <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              
+
               <div
                 style={{ position: 'relative' }}
                 onMouseEnter={() => { setShowFileMenu(true); cancelClose() }}
@@ -146,7 +182,7 @@ export default function Toolbar() {
         </div>
 
         {/* Right Side Controls */}
-        <div style={{ display: 'flex'}}>
+        <div style={{ display: 'flex' }}>
           <button onMouseDown={keepFocus} tabIndex={-1} style={{ height: 36, padding: '0 16px', borderRadius: 18, background: '#1a73e8', border: '1px solid #1669d9', color: 'white', display: 'inline-flex', alignItems: 'center', fontWeight: 500 }}>
             <Share size={16} style={{ marginRight: 8 }} />
             Share
