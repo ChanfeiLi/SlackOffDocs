@@ -1,5 +1,6 @@
 import { AlignLeft, ChevronDown, CloudDrizzle, Folder, Highlighter, Image as ImageIcon, Indent, LineChart, Link as LinkIcon, List, Minus, MoreHorizontal, Outdent, Plus, Printer, Redo, Search, Share, Star, Table, Type, Undo } from 'lucide-react'
 import * as React from 'react'
+import { convertPdfToTxt } from '../lib/pdfHelper'
 import { hashText, readSource, writeSource } from '../lib/sourceStore'
 import { useDocStore } from '../store/useDocStore'
 import Ruler from './Ruler'
@@ -48,19 +49,37 @@ export default function Toolbar() {
     return () => { ignore = true }
   }, [docId])
 
-  const onFile = async (file: File) => {
-    const text = await file.text()
+  const processLoadedText = async (text: string, name: string) => {
     const id = docId || await hashText(text)
     await writeSource(id, text)
     if (id !== docId) setDocId(id)
-    setFileName(file.name)
+    setFileName(name)
+  }
+
+  const onFile = async (file: File) => {
+    const text = await file.text()
+    await processLoadedText(text, file.name)
   }
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (f.type && f.type !== 'text/plain') { alert('仅支持 .txt'); return }
-    await onFile(f)
+
+    if (f.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const text = await convertPdfToTxt(f)
+        await processLoadedText(text, f.name)
+      } catch (error) {
+        console.error('PDF parsing error:', error)
+        alert('Failed to parse PDF')
+      }
+    } else if (f.type === 'text/plain' || f.name.toLowerCase().endsWith('.txt')) {
+      await onFile(f)
+    } else {
+      alert('Only .txt or .pdf files are supported')
+      return
+    }
+
     e.currentTarget.value = ''
   }
   return (
@@ -113,8 +132,8 @@ export default function Toolbar() {
 
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12, color: '#202124', marginLeft: 8 }}>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e5e7eb', padding: '4px 8px', borderRadius: 8, cursor: 'pointer' }}>
-                  Import txt
-                  <input type="file" accept=".txt,text/plain" onChange={onPick} style={{ display: 'none' }} />
+                  Import file
+                  <input type="file" accept=".txt,text/plain,.pdf,application/pdf" onChange={onPick} style={{ display: 'none' }} />
                 </label>
                 <div style={{ color: '#6b7280' }}>{docId ? `Doc: ${fileNameByDoc[docId] || docId.slice(0, 8) + '…'}` : 'No document loaded'}</div>
                 <div style={{ width: 1, height: 14, background: '#e5e7eb' }} />
@@ -229,4 +248,3 @@ export default function Toolbar() {
     </div>
   )
 }
-
