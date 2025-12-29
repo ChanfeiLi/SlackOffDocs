@@ -50,9 +50,9 @@ export default function Toolbar() {
 
   const onFile = async (file: File) => {
     const text = await file.text()
-    const id = await hashText(text)
+    const id = docId || await hashText(text)
     await writeSource(id, text)
-    setDocId(id)
+    if (id !== docId) setDocId(id)
     setFileName(file.name)
   }
 
@@ -229,5 +229,4 @@ export default function Toolbar() {
     </div>
   )
 }
-
 
