@@ -3,6 +3,7 @@ import * as React from 'react'
 import { hashText, readSource, writeSource } from '../lib/sourceStore'
 import { useDocStore } from '../store/useDocStore'
 import Ruler from './Ruler'
+import './Toolbar.css'
 
 export default function Toolbar() {
   const keepFocus = (e: React.MouseEvent) => e.preventDefault()
@@ -79,7 +80,6 @@ export default function Toolbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isEditingTitle ? (
                 <input
-                  autoFocus
                   value={tempTitle}
                   onChange={(e) => setTempTitle(e.target.value)}
                   onBlur={() => {
@@ -88,22 +88,24 @@ export default function Toolbar() {
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
+                      e.preventDefault();
                       setTitle(tempTitle || 'Untitled document')
                       setIsEditingTitle(false)
                     }
                   }}
-                  style={{ fontSize: 18, color: '#444746', fontWeight: 500, border: '1px solid #1a73e8', borderRadius: 4, padding: '0 4px', outline: 'none' }}
-                />
+                  className="doc-title-edit"
+                  autoFocus
+                  />
               ) : (
                 <span
-                  onDoubleClick={() => {
+                  className="doc-title-display"
+                  onClick={() => {
                     if (docId) {
                       setTempTitle(currentTitle)
                       setIsEditingTitle(true)
                     }
-                  }}
-                  style={{ fontSize: 18, color: '#444746', fontWeight: 500, cursor: docId ? 'text' : 'default' }}
-                >
+                  }}                  
+                  >
                   {currentTitle}
                 </span>
               )}
