@@ -1,7 +1,7 @@
+import { AlignLeft, ChevronDown, CloudDrizzle, Folder, Highlighter, Image as ImageIcon, Indent, LineChart, Link as LinkIcon, List, Minus, MoreHorizontal, Outdent, Plus, Printer, Redo, Search, Share, Star, Table, Type, Undo } from 'lucide-react'
 import * as React from 'react'
-import { Star, Folder, CloudDrizzle, Share, ChevronDown, MoreVertical, Search, Undo, Redo, Printer, Minus, Plus, Type, Highlighter, Link as LinkIcon, Image as ImageIcon, Table, AlignLeft, AlignCenter, AlignRight, AlignJustify, LineChart, List, ListOrdered, Outdent, Indent, MoreHorizontal } from 'lucide-react'
+import { hashText, readSource, writeSource } from '../lib/sourceStore'
 import { useDocStore } from '../store/useDocStore'
-import { hashText, writeSource, readSource } from '../lib/sourceStore'
 import Ruler from './Ruler'
 
 export default function Toolbar() {
@@ -102,17 +102,29 @@ export default function Toolbar() {
             <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               
               <div
-                style={{ position: 'relative' }}
-                onMouseEnter={() => { setShowFileMenu(true); cancelClose() }}
-                onMouseLeave={scheduleClose}
+                style={{ position: 'relative', padding: '4px 8px',
+                  borderRadius: 6,
+                  cursor: 'pointer', 
+                  border: '1px solid transparent',
+                  transition: 'all 0.2s ease' }}
+                onMouseEnter={(event) => { setShowFileMenu(true); cancelClose();
+                  (event.target as HTMLElement).style.backgroundColor = '#f9fafb';
+                 }}
+                onMouseLeave={(e) => {
+                  scheduleClose();
+                  (e.target as HTMLElement).style.backgroundColor = 'white';}}
               >
                 <span
                   onMouseDown={keepFocus}
                   onClick={() => { setShowFileMenu((v) => !v); cancelClose() }}
-                  style={{ cursor: 'default', fontSize: 13 }}
+                  style={{ cursor: 'pointer', fontSize: 13, 
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4 }}
                 >
                   File
                 </span>
+                <span style={{ fontSize: 10, color: '#6b7280' }}>▼</span>
                 {showFileMenu && (
                   <div
                     style={{ position: 'absolute', left: 0, marginTop: 6, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 8px 20px rgba(0,0,0,0.08)', minWidth: 200, zIndex: 60, padding: 6 }}
@@ -130,10 +142,14 @@ export default function Toolbar() {
                         background: hoverRemove ? '#f3f4f6' : 'white',
                         border: 'none',
                         color: '#111827',
+                        cursor: 'pointer',
                         borderRadius: 6,
                       }}
                     >
-                      Remove current document
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#d93025', fontSize: 14 }}>🗑️</span>
+                          <span>Remove current document</span>
+                        </span>
                     </button>
                   </div>
                 )}
