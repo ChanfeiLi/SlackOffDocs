@@ -25,9 +25,7 @@ export default function App() {
 
   React.useEffect(() => {
     if (docId) {
-      if (window.location.hash.slice(1) !== docId) {
-        window.location.hash = docId
-      }
+       window.history.replaceState({}, document.title, `#${docId}`);
     }
   }, [docId])
 
@@ -36,7 +34,7 @@ export default function App() {
       <Toolbar />
       <div style={{ maxWidth: 816, margin: '24px auto 0' }}>
         <div style={{ height: 1122, background: 'white', borderRadius: 4, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 40 }}>
-          <Editor docId={docId} />
+          <Editor docId={docId} key={`editor-${docId}`} />
         </div>
       </div>
     </div>

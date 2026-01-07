@@ -49,11 +49,14 @@ export default function Toolbar() {
   }, [docId])
 
   const onFile = async (file: File) => {
-    const text = await file.text()
-    const id = docId || await hashText(text)
-    await writeSource(id, text)
-    if (id !== docId) setDocId(id)
-    setFileName(file.name)
+    const text = await file.text();
+  const id = docId || await hashText(text);
+  await writeSource(id, text);
+  
+  setFileName(file.name);
+  setTitle(file.name.replace('.txt', '')); 
+  if (id !== docId) setDocId(id);
+  setDocLength(text.length);
   }
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +66,14 @@ export default function Toolbar() {
     await onFile(f)
     e.currentTarget.value = ''
   }
+
+const openNewDocumentTab = (): void => {
+  const newDocId = `new-doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const baseUrl = window.location.href.split('#')[0];
+  const newTabUrl = `${baseUrl}?init=1#${newDocId}`;
+  window.open(newTabUrl, '_blank');
+};
+
   return (
     <div style={{ background: '#f9fbfd', position: 'sticky', top: 0, zIndex: 30, padding: '8px 16px' }}>
       {/* Header Bar */}
@@ -170,6 +181,40 @@ export default function Toolbar() {
                       }}
                     >
                       Remove current document
+                    </button>
+
+                    <div style={{ height: 1, backgroundColor: '#e5e7eb', margin: '4px 0' }}></div>
+
+                    <button
+                      onMouseDown={(e) => { 
+                        e.preventDefault(); 
+                        openNewDocumentTab(); 
+                        setShowFileMenu(false); 
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'white';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 10px',
+                        background: 'white',
+                        border: 'none',
+                        color: '#111827',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#2563eb', fontSize: 14 }}>🆕</span>
+                        <span>New document window</span>
+                      </span>
                     </button>
                   </div>
                 )}

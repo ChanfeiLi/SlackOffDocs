@@ -18,6 +18,7 @@ type Store = {
   deleteSnippet: (currentText: string, startIndex: number, length: number) => Promise<string>
   setFileName: (name: string) => void
   clearCurrent: () => void
+  clearDocState: (docId: string) => void
 }
 
 export const useDocStore = create<Store>()(
@@ -76,6 +77,13 @@ export const useDocStore = create<Store>()(
         delete nextNames[id]
         return { docId: undefined, progressByDoc: nextProgress, titleByDoc: nextTitle, fileNameByDoc: nextNames }
       }),
+      clearDocState: (docId) => {
+        set((s) => ({
+          progressByDoc: { ...s.progressByDoc, [docId]: 0 }, 
+          titleByDoc: { ...s.titleByDoc, [docId]: 'Untitled document' }, 
+          fileNameByDoc: { ...s.fileNameByDoc, [docId]: '' }
+        }))
+      }
     }),
     {
       name: 'fishdoc-meta',
@@ -89,5 +97,27 @@ export const useDocStore = create<Store>()(
     },
   ),
 )
+export const initDocStore = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isNewWindow = urlParams.get('init') === '1';
+  const hashDocId = window.location.hash.slice(1);
 
+  if (isNewWindow && hashDocId) {
+    const store = useDocStore.getState();
+    store.clearDocState(hashDocId);
+    store.setDocId(hashDocId);
+    urlParams.delete('init');
+    window.history.replaceState(
+      {},
+      document.title,
+      `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}#${hashDocId}`
+    );
+  } else if (hashDocId) {
+    useDocStore.getState().setDocId(hashDocId);
+  }
 
+  window.addEventListener('hashchange', () => {
+    const newHashDocId = window.location.hash.slice(1);
+    useDocStore.getState().setDocId(newHashDocId || undefined);
+  });
+}
